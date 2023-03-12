@@ -21,10 +21,17 @@ impl Line {
 fn main() {
     let (mut rl, thread) = init().size(800, 450).title("Raynex").build();
 
-    let mut lines : Vec<Line> = vec![];
-    let mut directions : Vec<Vec2> = vec![];
+    let mut lines : Vec<Line> = vec![
+        Line::new(0.0, 0.0, 0.0, 450.0),
+        Line::new(800.0, 0.0, 800.0, 450.0),
+        Line::new(0.0, 0.0, 800.0, 0.0),
+        Line::new(0.0, 450.0, 800.0, 450.0),
+    ];
 
-    for i in 0..5 {
+    let mut directions : Vec<Vec2> = vec![];
+    let mut buffer : Vec<f32> = vec![];
+
+    for _i in 0..5 {
         lines.push(
             Line::new(
                 get_random_value::<i32>(0, 800) as f32,
@@ -35,18 +42,22 @@ fn main() {
         )
     }
 
+    let mut view_2D = true;
+
     while !rl.window_should_close() {
 
         let player = rl.get_mouse_position();
+        if rl.is_key_pressed(KeyboardKey::KEY_V) { view_2D = !view_2D }
 
         // Hilariously enough it was that easy
-        for i in (0..360).step_by(10) {
+        for i in 0..80 {
             directions.push(Vec2 { x: f64::cos(i as f64 * DEG2RAD) as f32, y: f64::sin(i as f64 * DEG2RAD) as f32});
         }
 
         let mut renderer = rl.begin_drawing(&thread);
         renderer.clear_background(Color::BLACK);
 
+        buffer.clear();
 
         for i in &directions {
             let mut point = Vec2::new(f32::INFINITY, f32::INFINITY);
@@ -60,15 +71,30 @@ fn main() {
                     }
                 }
             }
-            renderer.draw_line_v(player, point, Color::WHITE);
+            
+            if view_2D { renderer.draw_line_v(player, point, Color::WHITE); }
+            buffer.push(distance);
         }
 
-        for i in &lines {
-            i.clone().draw(&mut renderer);
+        if view_2D {
+            for i in &lines {
+                i.clone().draw(&mut renderer);
+            }
+        }
+
+        if !view_2D {
+            for i in 0..buffer.len() {
+                renderer.draw_rectangle(
+                    i as i32 * 10,
+                    0,
+                    10,
+                    change_range(buffer[i], 0.0, 800.0, 450.0, 0.0) as i32,
+                    Color::new(255, 255, 255, 255 - buffer[i] as u8)
+                )
+            }
         }
     }
 }
-
 
 /// Do the math to chek intersection between a ray and a line segment
 /// https://en.wikipedia.org/wiki/Line–line_intersection
@@ -89,4 +115,10 @@ fn check_intersect(player: &Vec2, direction: &Vec2, line: &Line) -> Vec2 {
     } else {
         return *player;
     }
+}
+
+/// Remap Range of a number
+/// https://stackoverflow.com/questions/44338698/p5-js-map-function-in-python
+fn change_range(n: f32, start1: f32, stop1: f32, start2: f32, stop2: f32) -> f32 {
+    ( (n - start1) / (stop1 - start1) ) * (stop2 - start2) + start2
 }
