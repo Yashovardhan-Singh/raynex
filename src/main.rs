@@ -31,6 +31,8 @@ fn main() {
     let mut directions : Vec<Vec2> = vec![];
     let mut buffer : Vec<f32> = vec![];
 
+    let mut player = Vec2::new(400.0, 225.0);
+
     for _i in 0..5 {
         lines.push(
             Line::new(
@@ -43,15 +45,41 @@ fn main() {
     }
 
     let mut view_2D = true;
+    let mut angle = 0.0;
+
+    for i in 0..40 {
+        directions.push(Vec2 { x: f64::cos(i as f64 * DEG2RAD) as f32, y: f64::sin(i as f64 * DEG2RAD) as f32});
+    }
 
     while !rl.window_should_close() {
 
-        let player = rl.get_mouse_position();
+        
         if rl.is_key_pressed(KeyboardKey::KEY_V) { view_2D = !view_2D }
 
-        // Hilariously enough it was that easy
-        for i in 0..80 {
-            directions.push(Vec2 { x: f64::cos(i as f64 * DEG2RAD) as f32, y: f64::sin(i as f64 * DEG2RAD) as f32});
+        if rl.is_key_down(KeyboardKey::KEY_A) {
+            angle -= 0.1;
+            for i in 0..directions.len() {
+                directions[i].x = f64::cos((i as f32 + angle) as f64 * DEG2RAD) as f32;
+                directions[i].y = f64::sin((i as f32 + angle) as f64 * DEG2RAD) as f32;
+            }
+        }
+
+        if rl.is_key_down(KeyboardKey::KEY_W) {
+            player.x -= f32::cos((20.0 + angle) * DEG2RAD as f32) * 0.1;
+            player.y -= f32::sin((20.0 + angle) * DEG2RAD as f32) * 0.1;
+        }
+        
+        if rl.is_key_down(KeyboardKey::KEY_S) {
+            player.x += f32::cos((20.0 + angle) * DEG2RAD as f32) * 0.1;
+            player.y += f32::sin((20.0 + angle) * DEG2RAD as f32) * 0.1;
+        }
+
+        if rl.is_key_down(KeyboardKey::KEY_D) {
+            angle += 0.1;
+            for i in 0..directions.len() {
+                directions[i].x = f64::cos((i as f32 + angle) as f64 * DEG2RAD) as f32;
+                directions[i].y = f64::sin((i as f32 + angle) as f64 * DEG2RAD) as f32;
+            }
         }
 
         let mut renderer = rl.begin_drawing(&thread);
@@ -84,12 +112,13 @@ fn main() {
 
         if !view_2D {
             for i in 0..buffer.len() {
+                let h = change_range(buffer[i], 0.0, 800.0, 450.0, 0.0) as i32;
                 renderer.draw_rectangle(
-                    i as i32 * 10,
-                    0,
-                    10,
-                    change_range(buffer[i], 0.0, 800.0, 450.0, 0.0) as i32,
-                    Color::new(255, 255, 255, 255 - buffer[i] as u8)
+                    (i as i32 * 20) - 10,
+                    225 - (h/2),
+                    20,
+                    h,
+                    Color::new(255, 255, 255, 255 - (buffer[i]/2.0) as u8)
                 )
             }
         }
